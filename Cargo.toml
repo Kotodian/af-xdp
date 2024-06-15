@@ -1,0 +1,19 @@
+[package]
+name = "af-xdp"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[dependencies]
+afxdp = { git = "https://github.com/Kotodian/afxdp-rs.git" }
+arraydeque = "0.4.0"
+cli-table = "0.4.7"
+core_affinity = "0.8.1"
+ctrlc = "3.4.4"
+rlimit = "0.10.1"
+rtrb = "0.3.1"
+serde = {version = "1.0.203", features = ["derive"]}
+serde_yaml = "0.9.34"
+structopt = "0.3.26"
