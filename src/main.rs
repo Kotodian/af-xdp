@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::{thread, time};
 
+use afxdp::buf::Buf;
 use afxdp::buf_mmap::BufMmap;
 use afxdp::buf_pool::BufPool;
 use afxdp::buf_pool_vec::BufPoolVec;
@@ -17,6 +18,7 @@ use afxdp::{socket::SocketRx, umem::UmemFillQueue};
 use arraydeque::{ArrayDeque, Wrapping};
 use cli_table::WithTitle;
 use cli_table::{format::Justify, Table};
+use pnet::packet::ethernet::EthernetPacket;
 use rlimit::{setrlimit, Resource};
 use rtrb::{Consumer, PopError, Producer, RingBuffer};
 use serde::Deserialize;
@@ -138,11 +140,14 @@ struct Opt {
 struct BufCustom;
 
 /// The loop for each worker
-fn do_worker(
+fn do_worker<F>(
     mut config: WorkerConfig,
     mut queues: WorkerQueues,
     bp: Arc<Mutex<BufPoolVec<BufMmap<BufCustom>, BufCustom>>>,
-) {
+    func: F,
+) where
+    F: Fn(&Vec<BufMmap<BufCustom>>),
+{
     let core = core_affinity::CoreId { id: config.core };
     core_affinity::set_for_current(core);
 
@@ -436,8 +441,8 @@ fn main() {
         };
 
         let mut options = SocketOptions::default();
-        options.zero_copy_mode = opt.zero_copy;
-        options.copy_mode = opt.copy;
+        options.zero_copy_mode = true;
+        options.copy_mode = false;
 
         let r = Socket::new(
             umem1.clone(),
@@ -491,7 +496,13 @@ fn main() {
         let bp2 = bp.clone();
         let worker_queues = worker_queues.remove(0);
         let handle = thread::spawn(|| {
-            do_worker(worker, worker_queues, bp2);
+            do_worker(worker, worker_queues, bp2, |bufs| {
+                for buf in bufs {
+                    let data = buf.get_data();
+                    let packet = EthernetPacket::new(data).unwrap();
+                    println!("receive packet: {:?}", packet);
+                }
+            });
         });
 
         thread_handles.push(handle);
