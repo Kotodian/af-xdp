@@ -255,7 +255,11 @@ fn do_worker<F>(
             bufs.push(buf);
         }
 
-        func(&bufs);
+        if let Ok(n) = r {
+            if n > 0 {
+                func(&bufs);
+            }
+        }
 
         //
         // Fill buffers if required
