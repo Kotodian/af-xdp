@@ -255,6 +255,8 @@ fn do_worker<F>(
             bufs.push(buf);
         }
 
+        func(&bufs);
+
         //
         // Fill buffers if required
         //
